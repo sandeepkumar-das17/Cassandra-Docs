@@ -1,5 +1,5 @@
 Cassandra Architecture
-
+-----------------------
 -	It is designed to handle big data workloads across multiple nodes with no single point of failure.
 -	Employs a peer-to-peer distributed system across homogeneous nodes where data is distributed among all nodes in the cluster.
 -	Each node frequently exchanges state information about itself and other nodes across the cluster using peer-to-peer gossip communication protocol.
@@ -10,24 +10,31 @@ Cassandra Architecture
 -	Client read or write requests can be sent to any node in the cluster. When a client connects to a node with a request, that node serves as the coordinator for that particular client operation. The coordinator acts as a proxy between the client application and the nodes that own the data being requested. The coordinator determines which nodes in the ring should get the request based on how the cluster is configured.
 
 Cluster
+--------
 A group of distributed nodes for storing data. A cluster can have a single node, single datacenter, or multiple datacenters.
 
 Datacenter
+----------
 A group of related nodes configured together within a cluster for replication purposes. A datacenter can be a physical datacenter or virtual datacenter. Using separate datacenters prevents transactions from being impacted by other workloads and lowers latency. Depending on the replication factor, data can be written to multiple datacenters. Datacenters must never span physical locations.
 
 Replication
+-----------
 The process of storing copies of data on multiple nodes. Replication ensures reliability and fault tolerance. The number of copies is set by the replication factor.
 
 Commit log
+----------
 All data is written first to the commit log for durability. After all its data has been flushed to SSTables, it can be archived, deleted, or recycled.
 
 SSTable
+-------
 A sorted string table (SSTable) is an immutable data file to which the database writes memtables periodically. SSTables are append only and stored on disk sequentially and maintained for each database table.
 
 CQL Table
+---------
 A collection of ordered columns fetched by table row. A table consists of columns and has a primary key.
 
 Gossip
+------
 -	A peer-to-peer communication protocol to discover and share location and state information about the other nodes in a DSE cluster. 
 -	Nodes periodically exchange state information about themselves and about other nodes they know about.
 -	The gossip process runs every second and exchanges state messages with up to three other nodes in the cluster. 
@@ -40,18 +47,22 @@ o	Client requests to these un-reachable nodes are avoided whenever possible.
 o	When a node comes back online after an outage, it may have missed writes for the replica data it maintains. Repair mechanisms exist to recover missed data, such as hinted handoffs and manual repair with nodetool repair. The length of the outage determines which repair mechanism is used to make the data consistent.
 
 Partitioner
+-----------
 A partitioner distributes data evenly across the nodes in the cluster for load balancing.
 Specifically, a partitioner determines which node receives the first replica of a piece of data, and how to distribute other replicas across other nodes in the cluster. Each row of data is uniquely identified by a primary key, which may be the same as its partition key, but which may also include other clustering columns. A partitioner is a hash function that derives a token from the primary key of a row. The partitioner uses the token value to determine which nodes in the cluster receive the replicas of that row. The Murmur3Partitioner is the default partitioning strategy for new DSE clusters and the right choice for new clusters in almost all cases.
 
 Replication factor
+------------------
 Replication is the process of storing copies of data on multiple nodes. Replication ensures reliability and fault tolerance. The number of copies is set by the replication factor.
 A replication factor of 1 means that there is only one copy of each row on one node. A replication factor of 2 means two copies of each row, where each copy is on a different node. All replicas are equally important; there is no primary or master replica. You define the replication factor for each datacenter. Generally, set the replication strategy greater than one, but no more than the number of nodes in the cluster.
 
 Replica placement strategy
+--------------------------
 A replication strategy determines which nodes to place replicas on. The first replica of data is simply the first copy; it is not unique in any sense. The NetworkTopologyStrategy is highly recommended for most deployments because it is much easier to expand to multiple datacenters when required by future expansion.
 When creating a keyspace, you must define the replica placement strategy and the number of replicas you want.
 
 Snitch
+------
 A snitch maps from the IP addresses of nodes to physical and virtual locations, such as racks and datacenters. Snitches inform the database about the network topology so that requests are routed efficiently and allows the database to distribute replicas by grouping machines into datacenters and racks.
 You must configure a snitch when you create a cluster. All snitches use a dynamic snitch layer, which monitors performance and chooses the best replica for reading. The dynamic snitch is enabled by default and recommended for use in most deployments. Configure dynamic snitch thresholds for each node in the cassandra.yaml configuration file.
 The default DseSimpleSnitch does not recognize datacenter or rack information. Use it for single-datacenter deployments or single-zone in public clouds. The GossipingPropertyFileSnitch is recommended for production. It defines a node's datacenter and rack and uses gossip for propagating this information to other nodes.
